@@ -12,36 +12,72 @@ def main():
         return
 
     client = Groq(api_key=api_key)
-    prompt = input("Enter your prompt: ").strip()
 
-    if not prompt:
-        print("Error: Prompt cannot be empty.")
-        return
+    
+    messages = [
+        {
+            "role": "system",
+            "content": """
+            You are a friendly Python programming tutor.
 
-    try:
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
-             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a helpful AI assistant."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.7,
-            max_tokens=500
-        )
-        answer = response.choices[0].message.content
-        print("\nAI Response:\n")
-        print(answer)
+            Follow these rules:
+            1. Explain concepts in simple language.
+            2. Give short, clear explanations.
+            3. Provide Python code examples when useful.
+            4. Explain code step by step.
+            5. Help users debug errors.
+            6. Encourage the user to solve problems independently.
+            """
+        }
+    ]
 
-    except APIError as e:
-        print(f"API Error: {e}")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    print("Python AI Tutor is ready!")
+    print("Ask questions or type 'exit' to quit.\n")
+
+    while True:
+        prompt = input("You: ").strip()
+
+        if prompt.lower() == "exit":
+            print("AI Tutor: Happy learning! Goodbye.")
+            break
+
+        if not prompt:
+            continue
+
+        # 3. Conversation history
+        messages.append({
+            "role": "user",
+            "content": prompt
+        })
+
+        try:
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=500
+            )
+
+            answer = response.choices[0].message.content
+
+            print(f"\nAI Tutor: {answer}\n")
+
+            # Save the AI response for future context
+            messages.append({
+                "role": "assistant",
+                "content": answer
+            })
+
+        except APIError as error:
+            print(f"API Error: {error}")
+
+            # Remove the failed user message so it isn't
+            # accidentally retained as conversation history.
+            messages.pop()
+
+        except Exception as error:
+            print(f"Unexpected error: {error}")
+            messages.pop()
 
 
 if __name__ == "__main__":
